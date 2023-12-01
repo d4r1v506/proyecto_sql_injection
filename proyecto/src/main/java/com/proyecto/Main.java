@@ -1,42 +1,78 @@
 package com.proyecto;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
+import java.util.Properties;
 import java.util.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main {
-    public static void main(String[] args) {
+    private Properties properties;
+    private static Logger logger = LoggerFactory.getLogger(Main.class.getName());
+
+    public Main(String filePath) {
+        properties = new Properties();
         try {
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream(filePath);
+            properties.load(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-            Scanner scanner = new Scanner(System.in);
-            // Establecer la conexión con la base de datos
-            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydatabase", "root",
-                    "");
+    public String getProperty(String key) {
+        return properties.getProperty(key);
+    }
 
-            // Crear una sentencia SQL vulnerable a SQL Injection
-            // String productId = "1";
-
-            System.out.print("Ingrese el id del producto: ");
+    public static void main(String[] args) {
+        Main configReader = new Main("config.properties");
+        String url = configReader.getProperty("url");
+        String username = configReader.getProperty("username");
+        String password = configReader.getProperty("password");
+        Scanner scanner = new Scanner(System.in);
+        PreparedStatement statement = null;
+        Connection connection = null;
+        ResultSet resultSet = null;
+        try {
+            connection = DriverManager.getConnection(url, username, password);
+            logger.info("Ingrese el id del producto: ");
             String productId = scanner.nextLine();
-            String sql = "SELECT * FROM productos WHERE id = " + productId;
-
-            // Ejecutar la consulta
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sql);
-
-            // Procesar los resultados
+            String sql = "SELECT * FROM productos WHERE id = ?";
+            statement = connection.prepareStatement(sql);
+            statement.setInt(1, Integer.valueOf(productId));
+            resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 int id = resultSet.getInt("id");
                 String nombre = resultSet.getString("nombre");
-                // double precio = resultSet.getDouble("precio");
-                System.out.println("ID: " + id + ", Nombre: " + nombre);
+                logger.info("ID: {}, Nombre: {}", id, nombre);
             }
-
-            // Cerrar la conexión
-            resultSet.close();
-            statement.close();
-            connection.close();
+            scanner.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Hay un error inesperado");
+        } finally {
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
