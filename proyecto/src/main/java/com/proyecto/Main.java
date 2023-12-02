@@ -1,11 +1,10 @@
 package com.proyecto;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.sql.*;
 import java.util.Properties;
+import java.util.Scanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ public class Main {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream(filePath);
             properties.load(inputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Error en el archivo");
         }
     }
 
@@ -27,19 +26,19 @@ public class Main {
         return properties.getProperty(key);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Main configReader = new Main("config.properties");
         String url = configReader.getProperty("url");
         String username = configReader.getProperty("username");
         String password = configReader.getProperty("password");
-        BufferedReader scanner = new BufferedReader(new InputStreamReader(System.in));
+        Scanner scanner = new Scanner(System.in);
         PreparedStatement statement = null;
         Connection connection = null;
         ResultSet resultSet = null;
         try {
             connection = DriverManager.getConnection(url, username, password);
             logger.info("Ingrese el id del producto: ");
-            String productId = scanner.readLine();
+            String productId = scanner.nextLine();
             String sql = "SELECT * FROM productos WHERE id = ?";
             statement = connection.prepareStatement(sql);
             statement.setInt(1, Integer.valueOf(productId));
@@ -57,21 +56,21 @@ public class Main {
                 try {
                     resultSet.close();
                 } catch (SQLException e) {
-                    logger.error("Error al cerrar");
+                    logger.error("Error al cerrar resultSet");
                 }
             }
             if (statement != null) {
                 try {
                     statement.close();
                 } catch (SQLException e) {
-                    logger.error("Error al cerrar");
+                    logger.error("Error al cerrar statement");
                 }
             }
             if (connection != null) {
                 try {
                     connection.close();
                 } catch (SQLException e) {
-                    logger.error("Error al cerrar");
+                    logger.error("Error al cerrar connection");
                 }
             }
         }
